@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reminder me</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Reminder me</h1>
+      <p>Track borrowed money, lent money, due dates, reminders, and complete history.</p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Add Daily Transaction</h2>
+        <form id="transaction-form">
+          <div class="field-grid">
+            <label>
+              Person name
+              <input id="person" type="text" required placeholder="e.g. Rahul" />
+            </label>
+            <label>
+              Amount
+              <input id="amount" type="number" required min="1" step="0.01" placeholder="e.g. 1200" />
+            </label>
+            <label>
+              Type
+              <select id="type" required>
+                <option value="i-owe">I need to pay (I borrowed)</option>
+                <option value="owes-me">I need to collect (I lent)</option>
+              </select>
+            </label>
+            <label>
+              Due date
+              <input id="dueDate" type="date" required />
+            </label>
+          </div>
+          <label>
+            Notes
+            <textarea id="notes" rows="3" placeholder="Optional details"></textarea>
+          </label>
+          <button type="submit">Save transaction</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Notifications</h2>
+        <ul id="notifications" class="list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Open Transactions</h2>
+        <ul id="open-transactions" class="list"></ul>
+      </section>
+
+      <section class="card">
+        <h2>Full History</h2>
+        <ul id="history" class="list"></ul>
+      </section>
+    </main>
+
+    <template id="transaction-template">
+      <li class="item">
+        <div>
+          <strong class="title"></strong>
+          <p class="meta"></p>
+        </div>
+        <div class="actions"></div>
+      </li>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
