@@ -2,4 +2,4 @@
 deployment:
   tasks:
     - export DEPLOYPATH=/home/sabbirbi/temp.sabbirbiswas.com
-    - /bin/cp -R * $DEPLOYPATH
+    - /bin/rsync -av --delete ./ $DEPLOYPATH
