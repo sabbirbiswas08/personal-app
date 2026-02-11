@@ -1,4 +1,5 @@
 const storageKey = "reminder-me-transactions";
+const tableName = "reminder_transactions";
 
 const form = document.getElementById("transaction-form");
 const personInput = document.getElementById("person");
@@ -14,10 +15,21 @@ const template = document.getElementById("transaction-template");
 const todayDate = () => new Date().toISOString().slice(0, 10);
 dueDateInput.min = todayDate();
 
-let transactions = loadTransactions();
-render();
+const supabaseUrl = window.APP_CONFIG?.supabaseUrl || "";
+const supabaseAnonKey = window.APP_CONFIG?.supabaseAnonKey || "";
+const canUseSupabase = Boolean(supabaseUrl && supabaseAnonKey && window.supabase?.createClient);
+const supabaseClient = canUseSupabase ? window.supabase.createClient(supabaseUrl, supabaseAnonKey) : null;
 
-form.addEventListener("submit", (event) => {
+let transactions = [];
+
+init();
+
+async function init() {
+  transactions = await loadTransactions();
+  render();
+}
+
+form.addEventListener("submit", async (event) => {
   event.preventDefault();
 
   const transaction = {
@@ -32,23 +44,51 @@ form.addEventListener("submit", (event) => {
     closedAt: null,
   };
 
-  transactions.unshift(transaction);
-  persist();
+  if (canUseSupabase) {
+    const { error } = await supabaseClient.from(tableName).insert(toDbRow(transaction));
+    if (error) {
+      console.error("Failed to save transaction in Supabase", error);
+      alert("Could not save transaction. Please try again.");
+      return;
+    }
+  } else {
+    transactions.unshift(transaction);
+    persist();
+  }
+
+  if (canUseSupabase) {
+    transactions = await loadTransactions();
+  }
+
   form.reset();
   dueDateInput.min = todayDate();
   render();
 });
 
-function loadTransactions() {
-  const raw = localStorage.getItem(storageKey);
-  if (!raw) return [];
+async function loadTransactions() {
+  if (!canUseSupabase) {
+    const raw = localStorage.getItem(storageKey);
+    if (!raw) return [];
 
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  const { data, error } = await supabaseClient
+    .from(tableName)
+    .select("id, person, amount, type, due_date, notes, status, created_at, closed_at")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Failed to load transactions from Supabase", error);
     return [];
   }
+
+  return data.map(fromDbRow);
 }
 
 function persist() {
@@ -58,9 +98,47 @@ function persist() {
 function daysUntil(dateString) {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const target = new Date(dateString);
+  const target = parseLocalDate(dateString);
   target.setHours(0, 0, 0, 0);
   return Math.floor((target - now) / (1000 * 60 * 60 * 24));
+}
+
+function parseLocalDate(dateString) {
+  const [year, month, day] = dateString.split("-").map(Number);
+
+  if (!year || !month || !day) {
+    return new Date(dateString);
+  }
+
+  return new Date(year, month - 1, day);
+}
+
+function toDbRow(transaction) {
+  return {
+    id: transaction.id,
+    person: transaction.person,
+    amount: transaction.amount,
+    type: transaction.type,
+    due_date: transaction.dueDate,
+    notes: transaction.notes || null,
+    status: transaction.status,
+    created_at: transaction.createdAt,
+    closed_at: transaction.closedAt,
+  };
+}
+
+function fromDbRow(row) {
+  return {
+    id: row.id,
+    person: row.person,
+    amount: Number(row.amount),
+    type: row.type,
+    dueDate: row.due_date,
+    notes: row.notes || "",
+    status: row.status,
+    createdAt: row.created_at,
+    closedAt: row.closed_at,
+  };
 }
 
 function notificationFor(transaction) {
@@ -208,23 +286,52 @@ function transactionRow(transaction, withActions) {
   return li;
 }
 
-function settle(id) {
-  transactions = transactions.map((item) =>
-    item.id === id
-      ? {
-          ...item,
-          status: "closed",
-          closedAt: new Date().toISOString(),
-        }
-      : item,
-  );
+async function settle(id) {
+  if (canUseSupabase) {
+    const closedAt = new Date().toISOString();
+    const { error } = await supabaseClient
+      .from(tableName)
+      .update({ status: "closed", closed_at: closedAt })
+      .eq("id", id);
 
-  persist();
+    if (error) {
+      console.error("Failed to settle transaction in Supabase", error);
+      alert("Could not mark as settled. Please try again.");
+      return;
+    }
+
+    transactions = await loadTransactions();
+  } else {
+    transactions = transactions.map((item) =>
+      item.id === id
+        ? {
+            ...item,
+            status: "closed",
+            closedAt: new Date().toISOString(),
+          }
+        : item,
+    );
+
+    persist();
+  }
+
   render();
 }
 
-function removeTransaction(id) {
-  transactions = transactions.filter((item) => item.id !== id);
-  persist();
+async function removeTransaction(id) {
+  if (canUseSupabase) {
+    const { error } = await supabaseClient.from(tableName).delete().eq("id", id);
+    if (error) {
+      console.error("Failed to delete transaction in Supabase", error);
+      alert("Could not delete transaction. Please try again.");
+      return;
+    }
+
+    transactions = await loadTransactions();
+  } else {
+    transactions = transactions.filter((item) => item.id !== id);
+    persist();
+  }
+
   render();
 }
