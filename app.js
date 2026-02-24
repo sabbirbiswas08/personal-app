@@ -24,7 +24,7 @@ const supabaseClient = canUseSupabase ? window.supabase.createClient(supabaseUrl
 
 let transactions = [];
 
-updateDeponentVisibility();
+
 init();
 
 async function init() {
@@ -32,8 +32,6 @@ async function init() {
   render();
 }
 
-
-typeInput.addEventListener("change", updateDeponentVisibility);
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -73,19 +71,6 @@ form.addEventListener("submit", async (event) => {
   render();
 });
 
-function shouldShowDeponent() {
-  return typeInput.value === "owes-me";
-}
-
-function updateDeponentVisibility() {
-  const show = shouldShowDeponent();
-  deponentGroup.classList.toggle("hidden", !show);
-  deponentInput.required = show;
-
-  if (!show) {
-    deponentInput.value = "";
-  }
-}
 
 async function loadTransactions() {
   if (!canUseSupabase) {
@@ -102,7 +87,7 @@ async function loadTransactions() {
 
   const { data, error } = await supabaseClient
     .from(tableName)
-    .select("id, person, amount, type, due_date, deponent, notes, status, created_at, closed_at")
+
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -142,7 +127,7 @@ function toDbRow(transaction) {
     amount: transaction.amount,
     type: transaction.type,
     due_date: transaction.dueDate,
-    deponent: transaction.deponent || null,
+
     notes: transaction.notes || null,
     status: transaction.status,
     created_at: transaction.createdAt,
@@ -157,7 +142,7 @@ function fromDbRow(row) {
     amount: Number(row.amount),
     type: row.type,
     dueDate: row.due_date,
-    deponent: row.deponent || "",
+
     notes: row.notes || "",
     status: row.status,
     createdAt: row.created_at,
