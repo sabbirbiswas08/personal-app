@@ -7,6 +7,8 @@ const amountInput = document.getElementById("amount");
 const typeInput = document.getElementById("type");
 const dueDateInput = document.getElementById("dueDate");
 const notesInput = document.getElementById("notes");
+const deponentInput = document.getElementById("deponent");
+const deponentGroup = document.getElementById("deponent-group");
 const notificationsList = document.getElementById("notifications");
 const openTransactionsList = document.getElementById("open-transactions");
 const historyList = document.getElementById("history");
@@ -22,12 +24,14 @@ const supabaseClient = canUseSupabase ? window.supabase.createClient(supabaseUrl
 
 let transactions = [];
 
+
 init();
 
 async function init() {
   transactions = await loadTransactions();
   render();
 }
+
 
 form.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -38,6 +42,7 @@ form.addEventListener("submit", async (event) => {
     amount: Number(amountInput.value),
     type: typeInput.value,
     dueDate: dueDateInput.value,
+    deponent: deponentInput.value.trim(),
     notes: notesInput.value.trim(),
     status: "open",
     createdAt: new Date().toISOString(),
@@ -62,8 +67,10 @@ form.addEventListener("submit", async (event) => {
 
   form.reset();
   dueDateInput.min = todayDate();
+  updateDeponentVisibility();
   render();
 });
+
 
 async function loadTransactions() {
   if (!canUseSupabase) {
@@ -80,7 +87,7 @@ async function loadTransactions() {
 
   const { data, error } = await supabaseClient
     .from(tableName)
-    .select("id, person, amount, type, due_date, notes, status, created_at, closed_at")
+
     .order("created_at", { ascending: false });
 
   if (error) {
@@ -120,6 +127,7 @@ function toDbRow(transaction) {
     amount: transaction.amount,
     type: transaction.type,
     due_date: transaction.dueDate,
+
     notes: transaction.notes || null,
     status: transaction.status,
     created_at: transaction.createdAt,
@@ -134,6 +142,7 @@ function fromDbRow(row) {
     amount: Number(row.amount),
     type: row.type,
     dueDate: row.due_date,
+
     notes: row.notes || "",
     status: row.status,
     createdAt: row.created_at,
@@ -257,6 +266,10 @@ function transactionRow(transaction, withActions) {
   title.textContent = `${direction} ${formatCurrency(transaction.amount)} ${transaction.type === "i-owe" ? "to" : "from"} ${transaction.person}`;
 
   const details = [`Due: ${transaction.dueDate}`, `Status: ${transaction.status}`];
+
+  if (transaction.deponent) {
+    details.push(`Deponent: ${transaction.deponent}`);
+  }
 
   if (transaction.notes) {
     details.push(`Notes: ${transaction.notes}`);
