@@ -216,3 +216,7 @@ button.danger {
     justify-content: flex-start;
   }
 }
+
+.hidden {
+  display: none;
+}
