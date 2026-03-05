@@ -24,7 +24,7 @@ Open `index.html` in your browser.
 The app supports two modes:
 
 1. **Local mode** (default): uses browser `localStorage`.
-2. **Supabase mode**: enabled when `config.js` has `supabaseUrl` and either `supabaseAnonKey` or `supabasePublishableKey`.
+2. **Supabase mode**: enabled when `config.js` has `supabaseUrl` and `supabaseAnonKey`.
 
 ### Configure Supabase mode
 
@@ -34,9 +34,7 @@ The app supports two modes:
 ```js
 window.APP_CONFIG = {
   supabaseUrl: "https://YOUR_PROJECT_REF.supabase.co",
-  // Use one of these keys:
   supabaseAnonKey: "YOUR_SUPABASE_ANON_KEY",
-  // supabasePublishableKey: "YOUR_SUPABASE_PUBLISHABLE_KEY",
 };
 ```
 
@@ -56,27 +54,7 @@ create table if not exists reminder_transactions (
 );
 ```
 
-If you got a SQL syntax error while trying to create columns manually in the table editor, run the full SQL block above in **SQL Editor** instead.
-
 4. Enable RLS and add policies that match your auth model.
-
-For quick personal use (single-user app), you can start with:
-
-```sql
-alter table reminder_transactions enable row level security;
-
-create policy "allow anon select" on reminder_transactions
-for select to anon using (true);
-
-create policy "allow anon insert" on reminder_transactions
-for insert to anon with check (true);
-
-create policy "allow anon update" on reminder_transactions
-for update to anon using (true) with check (true);
-
-create policy "allow anon delete" on reminder_transactions
-for delete to anon using (true);
-```
 
 > Important: Only use the **anon** key in `config.js`. Never place service-role keys in frontend code.
 
